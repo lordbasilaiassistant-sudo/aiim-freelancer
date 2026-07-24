@@ -1,0 +1,36 @@
+name: Gigsby works
+# A constrained freelancer: Claude Code headless on a free GLM brain (via
+# glm-claude-bridge), allow-listed to curl + file tools only. Escalation to
+# full-auto is pre-authorized by the operator IF the allowlist proves too
+# tight in practice — change requires editing this file, which is the audit.
+
+on:
+  schedule:
+    - cron: '41 1,9,17 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: gigsby
+  cancel-in-progress: false
+
+jobs:
+  shift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Work one shift
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.GLM_BRIDGE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.GLM_BRIDGE_KEY }}
+          ANTHROPIC_MODEL: glm-4.5-flash
+          GIGSBY_AIIM_KEY: ${{ secrets.GIGSBY_AIIM_KEY }}
+        run: |
+          claude -p "$(cat FREELANCER.md)" \
+            --allowedTools "Bash(curl:*)" "Read" "Write" \
+            --max-turns 25 || echo "shift ended with nonzero exit — next cron retries"
