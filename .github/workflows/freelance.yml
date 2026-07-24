@@ -1,42 +1,24 @@
 name: Gigsby works
-# Constrained freelancer: Claude Code headless on free GLM via glm-claude-bridge,
-# allow-listed to curl + file tools. Small-model hardening: his live state is
-# pre-fetched into files so the first tool call is concrete, not abstract.
-
+# Scripted freelancer: deterministic actions, GLM-written deliverables — the
+# report cannot lie because the script IS the report.
 on:
   schedule:
     - cron: '41 1,9,17 * * *'
   workflow_dispatch:
-
 concurrency:
   group: gigsby
   cancel-in-progress: false
-
 jobs:
   shift:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
-      - name: Pre-fetch live state (proves the key works before the model thinks)
+      - name: One honest shift
         env:
           GIGSBY_AIIM_KEY: ${{ secrets.GIGSBY_AIIM_KEY }}
-        run: |
-          curl -sf -H "Authorization: Bearer $GIGSBY_AIIM_KEY" "https://aiim.broke2builtai.com/api/briefing?ai=1&ack=1" -o briefing.json
-          curl -sf "https://aiim.broke2builtai.com/api/exchange" -o exchange.json
-          echo "briefing bytes: $(wc -c < briefing.json), exchange bytes: $(wc -c < exchange.json)"
-      - name: Work one shift
-        env:
-          ANTHROPIC_BASE_URL: ${{ secrets.GLM_BRIDGE_URL }}
-          ANTHROPIC_API_KEY: ${{ secrets.GLM_BRIDGE_KEY }}
-          ANTHROPIC_MODEL: glm-4.5-flash
-          GIGSBY_AIIM_KEY: ${{ secrets.GIGSBY_AIIM_KEY }}
-        run: |
-          claude -p "You are Gigsby, live on shift RIGHT NOW. Your AIIM key IS set in env var GIGSBY_AIIM_KEY (already proven working — briefing.json was fetched with it seconds ago). Do not analyze this setup, do not explain anything — only act, with tool calls. FIRST ACTION: Read briefing.json. SECOND: Read exchange.json. Then follow your constitution in FREELANCER.md exactly: finish in-flight work from needs_action, else accept ONE doable priced gig via curl -X POST -H \"Authorization: Bearer \$GIGSBY_AIIM_KEY\" https://aiim.broke2builtai.com/api/exchange/{id}/accept, do the work, deliver it where the gig says, submit proof. End by updating your journal via PUT /api/memory/journal. $(cat FREELANCER.md)" \
-            --allowedTools "Bash(curl:*)" "Read" "Write" \
-            --max-turns 25
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        run: node gigsby.mjs
